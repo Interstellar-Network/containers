@@ -1,0 +1,73 @@
+version: '3'
+services:
+
+  ipfs:
+    image: "ipfs/kubo:latest"
+    ports:
+      - "5001:5001"
+    environment:
+    volumes:
+      # https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node
+      - ./docker-ipfs-init.sh:/container-init.d/001-test.sh
+
+  # sudo docker run -d --name integritee_node --env RUST_LOG=info,jsonrpsee_server=warn --env IPFS_ROOT_URL=http://172.17.0.2:5001 -p 9944:9944 -p 8990:8990 ghcr.io/interstellar-network/containers/integritee_node:dev
+  integritee_node:
+    image: "ghcr.io/interstellar-network/containers/integritee_node:dev"
+    hostname: integritee_node
+    ports:
+      # --rpc-port
+      - "8990:8990"
+      # --ws-port
+      - "9944:9944"
+    # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
+    command: ["--ws-external", "--rpc-external", "--rpc-methods", "unsafe", "--dev", "--tmp", "--ws-port", "9944", "--port", "30390", "--rpc-port", "8990", "--enable-offchain-indexing=true"]
+    environment:
+      RUST_LOG: info,jsonrpsee_server=warn
+      RUST_BACKTRACE: 1
+      IPFS_ROOT_URL: http://ipfs:5001
+    healthcheck:
+        test: ["CMD", "lsof", "-i", ":9944"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  # sudo docker run -d --name integritee_service --env=RUST_LOG=warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info --env IPFS_ROOT_URL=http://172.17.0.2:5001 --env INTERSTELLAR_URI_NODE=http://172.17.0.3:8990 -p 2090:2090 -p 2091:2091 ghcr.io/interstellar-network/containers/integritee-service:dev --ws-external --clean-reset -P 2090 -p 9944 --node-url ws://172.17.0.3 -r 3490 -w 2091 -h 4545 run --skip-ra --dev
+  integritee_service:
+    image: "ghcr.io/interstellar-network/containers/integritee-service:dev"
+    hostname: integritee_service
+    ports:
+      # -P, --trusted-worker-port
+      - "2090:2090"
+      # -r, --mu-ra-port
+      - "3490:3490"
+      # -w, --untrusted-worker-port
+      - "2091:2091"
+      # -h, --untrusted-http-port
+      - "4545:4545"
+    # integritee-service SHOULD properly handle timeouts/retries but it is not the case so we wait until "integritee_node" is ready
+    entrypoint: ["/usr/local/bin/dockerize", "-wait", "tcp://integritee_node:9944", "/usr/local/bin/integritee-service"]
+    # --ws-external, needed else can not connect from host, cf https://github.com/substrate-developer-hub/substrate-node-template/blob/main/docker-compose.yml
+    command: [ "--ws-external", "--clean-reset", "-P", "2090", "--node-port", "9944", "--node-url", "ws://integritee_node", "-r", "3490", "-w", "2091", "-h", "4545", "run", "--skip-ra", "--dev" ]
+    environment:
+      RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info
+      RUST_BACKTRACE: 1
+      INTERSTELLAR_URI_NODE: http://integritee_node:8990
+      IPFS_ROOT_URL: http://ipfs:5001
+    depends_on:
+      - integritee_node
+
+  # # podman equivalent: podman run --rm -it --network interstellar-book_default --entrypoint /usr/local/worker-cli/demo_interstellar.sh --env CLIENT_BIN=/usr/local/bin/integritee-cli ghcr.io/interstellar-network/integritee_cli:dev -P 2090 -p 9990 -u ws://integritee_node -V wss://integritee_service -R http://integritee_node:8990
+  # # compose is not really made to start "one shot" containers so it's a bit of a hack:
+  # # - we default the entrypoint to "/usr/bin/true"
+  # # - and then we can start the "demo script" on demand with: `podman-compose run --entrypoint /usr/local/worker-cli/demo_interstellar.sh integritee_cli`
+  # integritee_cli:
+  #   image: "ghcr.io/interstellar-network/integritee_cli:dev"
+  #   hostname: integritee_cli
+  #   stdin_open: true
+  #   tty: true
+  #   entrypoint: ["/usr/bin/true"]
+  #   command: ["-P", "2090", "-p", "9990", "-u", "ws://integritee_node", "-V", "wss://integritee_service", "-R", "http://integritee_node:8990"]
+  #   environment:
+  #     CLIENT_BIN: /usr/local/bin/integritee-cli
+  #   depends_on:
+  #     - integritee_service
