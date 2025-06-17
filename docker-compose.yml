@@ -64,7 +64,9 @@ services:
     hostname: integritee_cli
     stdin_open: true
     tty: true
-    entrypoint: ["/usr/bin/true"]
+    # For demo convenience, directly start "demo demo_interstellar" to prepare Circuits
+    # entrypoint: ["/usr/bin/true"]
+    entrypoint: ["/usr/local/bin/dockerize", "-wait", "tcp://integritee_service:2090", "/usr/local/worker-cli/demo_interstellar.sh"]
     command: ["-P", "2090", "-p", "9944", "-u", "ws://integritee_node", "-V", "wss://integritee_service", "-R", "http://integritee_node:8990"]
     environment:
       CLIENT_BIN: /usr/local/bin/integritee-cli
