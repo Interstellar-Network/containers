@@ -45,7 +45,7 @@ services:
       # -h, --untrusted-http-port
       - "4545:4545"
     # integritee-service SHOULD properly handle timeouts/retries but it is not the case so we wait until "integritee_node" is ready
-    entrypoint: ["/usr/local/bin/dockerize", "-wait", "tcp://integritee_node:9944", "/usr/local/bin/integritee-service"]
+    entrypoint: ["/usr/local/bin/dockerize", "-wait-retry-interval", "10s", "-timeout", "60s", "-wait", "tcp://integritee_node:9944", "-wait", "tcp://integritee_node:8990", "/usr/local/bin/integritee-service"]
     # --ws-external, needed else can not connect from host, cf https://github.com/substrate-developer-hub/substrate-node-template/blob/main/docker-compose.yml
     command: [ "--ws-external", "--clean-reset", "-P", "2090", "--node-port", "9944", "--node-url", "ws://integritee_node", "-r", "3490", "-w", "2091", "-h", "4545", "run", "--skip-ra", "--dev" ]
     environment:
@@ -66,7 +66,7 @@ services:
     tty: true
     # For demo convenience, directly start "demo demo_interstellar" to prepare Circuits
     # entrypoint: ["/usr/bin/true"]
-    entrypoint: ["/usr/local/bin/dockerize", "-wait", "tcp://integritee_service:2090", "/usr/local/worker-cli/demo_interstellar.sh"]
+    entrypoint: ["/usr/local/bin/dockerize", "-wait-retry-interval", "10s", "-timeout", "120s", "-wait", "tcp://integritee_service:2090", "/usr/local/worker-cli/demo_interstellar.sh"]
     command: ["-P", "2090", "-p", "9944", "-u", "ws://integritee_node", "-V", "wss://integritee_service", "-R", "http://integritee_node:8990"]
     environment:
       CLIENT_BIN: /usr/local/bin/integritee-cli
