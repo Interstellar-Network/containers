@@ -19,17 +19,20 @@ services:
       - "8990:8990"
       # --ws-port
       - "9944:9944"
+    # TODO if truly needed, `lsof` should be installed instead of `dockerize` in the base image
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
-    command: ["--ws-external", "--rpc-external", "--rpc-methods", "unsafe", "--dev", "--tmp", "--ws-port", "9944", "--port", "30390", "--rpc-port", "8990", "--enable-offchain-indexing=true"]
+    # to avoid touching `integritee_node` Dockerfile we install `lsof` here so
+    # we MUST also concat entrypoint and command 
+    entrypoint: ["/bin/bash", "-c", "apt-get update && apt-get install -y lsof && /opt/rust/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --tmp --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
     environment:
       RUST_LOG: info,jsonrpsee_server=warn
       RUST_BACKTRACE: 1
       IPFS_ROOT_URL: http://ipfs:5001
     healthcheck:
         test: ["CMD", "lsof", "-i", ":9944"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
+        interval: 2s
+        timeout: 1s
+        retries: 60
 
   # sudo docker run -d --name integritee_service --env=RUST_LOG=warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info --env IPFS_ROOT_URL=http://172.17.0.2:5001 --env INTERSTELLAR_URI_NODE=http://172.17.0.3:8990 -p 2090:2090 -p 2091:2091 ghcr.io/interstellar-network/containers/integritee-service:dev --ws-external --clean-reset -P 2090 -p 9944 --node-url ws://172.17.0.3 -r 3490 -w 2091 -h 4545 run --skip-ra --dev
   integritee_service:
@@ -49,12 +52,13 @@ services:
     # --ws-external, needed else can not connect from host, cf https://github.com/substrate-developer-hub/substrate-node-template/blob/main/docker-compose.yml
     command: [ "--ws-external", "--clean-reset", "-P", "2090", "--node-port", "9944", "--node-url", "ws://integritee_node", "-r", "3490", "-w", "2091", "-h", "4545", "run", "--skip-ra", "--dev" ]
     environment:
-      RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info
+      RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,pallet_mobile_registry=debug,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info
       RUST_BACKTRACE: 1
       INTERSTELLAR_URI_NODE: http://integritee_node:8990
       IPFS_ROOT_URL: http://ipfs:5001
     depends_on:
-      - integritee_node
+      integritee_node:
+        condition: service_healthy
 
   # compose is not really made to start "one shot" containers so it's a bit of a hack:
   # - we default the entrypoint to "/usr/bin/true"
@@ -71,4 +75,5 @@ services:
     environment:
       CLIENT_BIN: /usr/local/bin/integritee-cli
     depends_on:
-      - integritee_service
+      integritee_node:
+        condition: service_healthy
