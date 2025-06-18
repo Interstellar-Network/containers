@@ -5,7 +5,6 @@ services:
     image: "ipfs/kubo:latest"
     ports:
       - "5001:5001"
-    environment:
     volumes:
       # https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node
       - ./docker-ipfs-init.sh:/container-init.d/001-test.sh
