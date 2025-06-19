@@ -2,7 +2,7 @@ version: '3'
 services:
 
   ipfs:
-    image: "ipfs/kubo:latest"
+    image: "docker.io/ipfs/kubo:latest"
     ports:
       - "5001:5001"
     volumes:
