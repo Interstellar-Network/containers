@@ -1,0 +1,91 @@
+version: '3'
+services:
+
+  ipfs:
+    image: "docker.io/ipfs/kubo:latest"
+    ports:
+      - "5001:5001"
+    volumes:
+      # https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node
+      - ./docker-ipfs-init.sh:/container-init.d/001-test.sh
+
+  # sudo docker run -d --name integritee_node --env RUST_LOG=info,jsonrpsee_server=warn --env IPFS_ROOT_URL=http://172.17.0.2:5001 -p 9944:9944 -p 8990:8990 ghcr.io/interstellar-network/containers/integritee_node:testnet-m1
+  integritee_node:
+    image: "ghcr.io/interstellar-network/containers/integritee_node:testnet-m1"
+    hostname: integritee_node
+    ports:
+      # --rpc-port
+      - "8990:8990"
+      # --ws-port
+      - "9944:9944"
+    # TODO if truly needed, `lsof` should be installed instead of `dockerize` in the base image
+    # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
+    # to avoid touching `integritee_node` Dockerfile we install `lsof` here so
+    # we MUST also concat entrypoint and command 
+    entrypoint: ["/bin/bash", "-c", "/opt/rust/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --tmp --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
+    environment:
+      RUST_LOG: info,jsonrpsee_server=warn
+      RUST_BACKTRACE: 1
+      IPFS_ROOT_URL: http://ipfs:5001
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sSf -X POST http://localhost:8990/ -H \"Content-Type: application/json\" -d '{\"jsonrpc\":\"2.0\",\"method\":\"system_health\",\"params\":[],\"id\":1}' | grep -q '\"isSyncing\":false'"]
+      interval: 10s
+      timeout: 1s
+      retries: 20
+      start_period: 10s
+      start_interval: 10s
+
+  # sudo docker run -d --name integritee_service --env=RUST_LOG=warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info --env IPFS_ROOT_URL=http://172.17.0.2:5001 --env INTERSTELLAR_URI_NODE=http://172.17.0.3:8990 -p 2090:2090 -p 2091:2091 ghcr.io/interstellar-network/containers/integritee-service:testnet-m1 --ws-external --clean-reset -P 2090 -p 9944 --node-url ws://172.17.0.3 -r 3490 -w 2091 -h 4545 run --skip-ra --dev
+  integritee_service:
+    image: "ghcr.io/interstellar-network/containers/integritee-service:testnet-m1"
+    hostname: integritee_service
+    ports:
+      # -P, --trusted-worker-port
+      - "2090:2090"
+      # -r, --mu-ra-port
+      - "3490:3490"
+      # -w, --untrusted-worker-port
+      - "2091:2091"
+      # -h, --untrusted-http-port
+      - "4545:4545"
+    # integritee-service SHOULD properly handle timeouts/retries but it is not the case so we wait until "integritee_node" is ready
+    # --ws-external, needed else can not connect from host, cf https://github.com/substrate-developer-hub/substrate-node-template/blob/main/docker-compose.yml
+    entrypoint: ["/bin/bash", "-c", "/usr/local/bin/dockerize -wait-retry-interval 10s -timeout 60s -wait tcp://integritee_node:9944 -wait tcp://integritee_node:8990 /usr/local/bin/integritee-service --ws-external --clean-reset -P 2090 --node-port 9944 --node-url ws://integritee_node -r 3490 -w 2091 -h 4545 run --skip-ra --dev" ]
+    environment:
+      RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,pallet_mobile_registry=debug,pallet_nfc_recovery=debug,pallet_token_recovery=debug,pallet_unify_recovery=debug,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info
+      RUST_BACKTRACE: 1
+      INTERSTELLAR_URI_NODE: http://integritee_node:8990
+      IPFS_ROOT_URL: http://ipfs:5001
+    healthcheck:
+      # Seems like a really good healthcheck
+      # Returns 200 ONLY after `[integritee_service] | [+] Found 0 block(s) to sync`
+      # ie the full bootstrap etc
+      test: ["CMD-SHELL", "curl -vv -f http://localhost:4545/is_initialized"]
+      interval: 5s
+      timeout: 2s
+      retries: 30
+      start_period: 10s
+      start_interval: 10s
+    depends_on:
+      integritee_node:
+        condition: service_healthy
+
+  # compose is not really made to start "one shot" containers so it's a bit of a hack:
+  # - we default the entrypoint to "/usr/bin/true"
+  # - and then we can start the "demo script" on demand with for example: `podman-compose run --entrypoint /usr/local/worker-cli/demo_interstellar.sh integritee_cli`
+  integritee_cli:
+    image: "ghcr.io/interstellar-network/containers/integritee-cli:testnet-m1"
+    hostname: integritee_cli
+    stdin_open: true
+    tty: true
+    # For demo convenience, directly start "demo demo_interstellar" to prepare Circuits
+    # entrypoint: ["/usr/bin/true"]
+    entrypoint: ["/usr/local/bin/dockerize", "-wait-retry-interval", "10s", "-timeout", "120s", "-wait", "tcp://integritee_service:2090", "/usr/local/worker-cli/demo_interstellar.sh"]
+    command: ["-P", "2090", "-p", "9944", "-u", "ws://integritee_node", "-V", "wss://integritee_service", "-R", "http://integritee_node:8990"]
+    environment:
+      CLIENT_BIN: /usr/local/bin/integritee-cli
+    depends_on:
+      integritee_node:
+        condition: service_healthy
+      integritee_service:
+        condition: service_healthy
