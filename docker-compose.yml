@@ -11,7 +11,7 @@ services:
 
   # sudo docker run -d --name integritee_node --env RUST_LOG=info,jsonrpsee_server=warn --env IPFS_ROOT_URL=http://172.17.0.2:5001 -p 9944:9944 -p 8990:8990 ghcr.io/interstellar-network/containers/integritee_node:testnet-m1
   integritee_node:
-    image: "ghcr.io/interstellar-network/containers/integritee_node:testnet-m1"
+    image: "ghcr.io/interstellar-network/containers/integritee-node:dev"
     hostname: integritee_node
     ports:
       # --rpc-port
@@ -22,7 +22,7 @@ services:
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
     # to avoid touching `integritee_node` Dockerfile we install `lsof` here so
     # we MUST also concat entrypoint and command 
-    entrypoint: ["/bin/bash", "-c", "/opt/rust/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --tmp --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
+    entrypoint: ["/bin/bash", "-c", "/home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --tmp --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
     environment:
       RUST_LOG: info,jsonrpsee_server=warn
       RUST_BACKTRACE: 1
@@ -37,7 +37,7 @@ services:
 
   # sudo docker run -d --name integritee_service --env=RUST_LOG=warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info --env IPFS_ROOT_URL=http://172.17.0.2:5001 --env INTERSTELLAR_URI_NODE=http://172.17.0.3:8990 -p 2090:2090 -p 2091:2091 ghcr.io/interstellar-network/containers/integritee-service:testnet-m1 --ws-external --clean-reset -P 2090 -p 9944 --node-url ws://172.17.0.3 -r 3490 -w 2091 -h 4545 run --skip-ra --dev
   integritee_service:
-    image: "ghcr.io/interstellar-network/containers/integritee-service:testnet-m1"
+    image: "ghcr.io/interstellar-network/containers/integritee-service:dev"
     hostname: integritee_service
     ports:
       # -P, --trusted-worker-port
@@ -74,7 +74,7 @@ services:
   # - we default the entrypoint to "/usr/bin/true"
   # - and then we can start the "demo script" on demand with for example: `podman-compose run --entrypoint /usr/local/worker-cli/demo_interstellar.sh integritee_cli`
   integritee_cli:
-    image: "ghcr.io/interstellar-network/containers/integritee-cli:testnet-m1"
+    image: "ghcr.io/interstellar-network/containers/integritee-cli:dev"
     hostname: integritee_cli
     stdin_open: true
     tty: true
