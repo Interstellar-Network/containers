@@ -9,6 +9,28 @@ services:
       # https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node
       - ./docker-ipfs-init.sh:/container-init.d/001-test.sh
 
+  api_circuits:
+    # image: your-repo/api-circuits-image:latest
+    build:
+      context: ../api-circuits/ 
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      RUST_LOG: info,api_circuits_service=debug
+      RUST_BACKTRACE: 1
+      IPFS_ROOT_URL: http://ipfs:5001
+      API_KEY: "your-super-secret-key-for-compose"
+    depends_on:
+      - ipfs
+    healthcheck:
+      # It will only pass once the cache is warm and IPFS is reachable.
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/readyz"]
+      interval: 10s
+      timeout: 2s
+      retries: 20 
+      start_period: 10s
+
   # sudo docker run -d --name integritee_node --env RUST_LOG=info,jsonrpsee_server=warn --env IPFS_ROOT_URL=http://172.17.0.2:5001 -p 9944:9944 -p 8990:8990 ghcr.io/interstellar-network/containers/integritee_node:testnet-m1
   integritee_node:
     image: "ghcr.io/interstellar-network/containers/integritee_node:testnet-m1"
@@ -34,6 +56,10 @@ services:
       retries: 20
       start_period: 10s
       start_interval: 10s
+    depends_on:
+      # It just needs api-circuits to be started, not necessarily ready.
+      api_circuits:
+        condition: service_started
 
   # sudo docker run -d --name integritee_service --env=RUST_LOG=warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info --env IPFS_ROOT_URL=http://172.17.0.2:5001 --env INTERSTELLAR_URI_NODE=http://172.17.0.3:8990 -p 2090:2090 -p 2091:2091 ghcr.io/interstellar-network/containers/integritee-service:testnet-m1 --ws-external --clean-reset -P 2090 -p 9944 --node-url ws://172.17.0.3 -r 3490 -w 2091 -h 4545 run --skip-ra --dev
   integritee_service:
@@ -88,4 +114,8 @@ services:
       integritee_node:
         condition: service_healthy
       integritee_service:
+        condition: service_healthy
+      # That's the key: "healthy" api_circuits means the cache is ready so the script
+      # will not have to wait for circuits to generate 
+      api_circuits:
         condition: service_healthy
