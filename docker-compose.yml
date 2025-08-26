@@ -32,9 +32,7 @@ services:
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
     entrypoint: ["/bin/bash", "-c", "/home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --tmp --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
     environment:
-      # RUST custom
-      # "sensible default" for a dev env' including Integritee/Substrate pallets
-      RUST_LOG: debug,ws=warn,substrate_api_client=warn,ac_node_api=warn,sp_io=warn,integritee_service=warn,itc_rpc_client=warn,itc_tls_websocket_server=warn,enclave_runtime=warn,jsonrpsee_ws_server=warn,jsonrpsee_ws_client=warn,aura=warn,itp_stf_executor=warn,itc_parentchain_light_client=warn,itc_parentchain_block_importer=warn,itc_parentchain_indirect_calls_executor=warn,itc_rpc_server=warn,tungstenite=warn,itc_direct_rpc_server=warn,rpc=warn,rustls::server=warn,its_consensus_common=warn,its_consensus_aura=warn,its_rpc_handler=warn,its_consensus_slots=warn,its_block_composer=warn,itc_parentchain_block_import_dispatcher,its_rpc_handler=warn,its_state=warn,itc_parentchain_block_import_dispatcher=warn
+      RUST_LOG: info,jsonrpsee_server=warn
       RUST_BACKTRACE: 1
       IPFS_ROOT_URL: http://ipfs:5001
     healthcheck:
@@ -64,9 +62,7 @@ services:
     # --ws-external, needed else can not connect from host, cf https://github.com/substrate-developer-hub/substrate-node-template/blob/main/docker-compose.yml
     entrypoint: ["/bin/bash", "-c", "/usr/local/bin/dockerize -wait-retry-interval 10s -timeout 60s -wait tcp://integritee_node:9944 -wait tcp://integritee_node:8990 /usr/local/bin/integritee-service --ws-external --clean-reset -P 2090 --node-port 9944 --node-url ws://integritee_node -r 3490 -w 2091 -h 4545 run --skip-ra --dev" ]
     environment:
-      # RUST custom
-      # "sensible default" for a dev env' including Integritee/Substrate pallets
-      RUST_LOG: debug,ws=warn,substrate_api_client=warn,ac_node_api=warn,sp_io=warn,integritee_service=warn,itc_rpc_client=warn,itc_tls_websocket_server=warn,enclave_runtime=warn,jsonrpsee_ws_server=warn,jsonrpsee_ws_client=warn,aura=warn,itp_stf_executor=warn,itc_parentchain_light_client=warn,itc_parentchain_block_importer=warn,itc_parentchain_indirect_calls_executor=warn,itc_rpc_server=warn,tungstenite=warn,itc_direct_rpc_server=warn,rpc=warn,rustls::server=warn,its_consensus_common=warn,its_consensus_aura=warn,its_rpc_handler=warn,its_consensus_slots=warn,its_block_composer=warn,itc_parentchain_block_import_dispatcher,its_rpc_handler=warn,its_state=warn,itc_parentchain_block_import_dispatcher=warn
+      RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,pallet_mobile_registry=debug,pallet_nfc_recovery=debug,pallet_token_recovery=debug,pallet_unify_recovery=debug,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info
       RUST_BACKTRACE: 1
       INTERSTELLAR_URI_NODE: http://integritee_node:8990
       IPFS_ROOT_URL: http://ipfs:5001
