@@ -1,4 +1,11 @@
 version: '3'
+
+volumes:
+  # ipfs-staging:
+  # ipfs-data:
+  # integritee-node-data:
+  # integritee-service-data:
+
 services:
 
   ipfs:
@@ -6,6 +13,8 @@ services:
     ports:
       - "5001:5001"
     volumes:
+      # - ipfs-staging:/export
+      # - ipfs-data:/data/ipfs
       # https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node
       - ./docker-ipfs-init.sh:/container-init.d/001-test.sh
 
@@ -13,15 +22,14 @@ services:
   integritee_node:
     image: "ghcr.io/interstellar-network/containers/integritee-node:dev"
     hostname: integritee_node
+    # volumes:
+    #   - integritee-node-data:/data
     ports:
       # --rpc-port
       - "8990:8990"
       # --ws-port
       - "9944:9944"
-    # TODO if truly needed, `lsof` should be installed instead of `dockerize` in the base image
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
-    # to avoid touching `integritee_node` Dockerfile we install `lsof` here so
-    # we MUST also concat entrypoint and command 
     entrypoint: ["/bin/bash", "-c", "/home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --tmp --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
     environment:
       RUST_LOG: info,jsonrpsee_server=warn
@@ -39,6 +47,8 @@ services:
   integritee_service:
     image: "ghcr.io/interstellar-network/containers/integritee-service:dev"
     hostname: integritee_service
+    # volumes:
+    #   - integritee-service-data:/data
     ports:
       # -P, --trusted-worker-port
       - "2090:2090"
@@ -56,6 +66,7 @@ services:
       RUST_BACKTRACE: 1
       INTERSTELLAR_URI_NODE: http://integritee_node:8990
       IPFS_ROOT_URL: http://ipfs:5001
+      INTERSTELLAR_ETH_ROOT_URL: https://ethereum-sepolia-rpc.publicnode.com 
     healthcheck:
       # Seems like a really good healthcheck
       # Returns 200 ONLY after `[integritee_service] | [+] Found 0 block(s) to sync`
