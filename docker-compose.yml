@@ -67,6 +67,7 @@ services:
       INTERSTELLAR_URI_NODE: http://integritee_node:8990
       IPFS_ROOT_URL: http://ipfs:5001
       INTERSTELLAR_ETH_ROOT_URL: https://ethereum-sepolia-rpc.publicnode.com 
+      BITCOIN_TESTNET_API_KEY: ${BITCOIN_TESTNET_API_KEY:?error} 
     healthcheck:
       # Seems like a really good healthcheck
       # Returns 200 ONLY after `[integritee_service] | [+] Found 0 block(s) to sync`
