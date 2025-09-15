@@ -68,6 +68,8 @@ services:
       IPFS_ROOT_URL: http://ipfs:5001
       INTERSTELLAR_ETH_ROOT_URL: https://ethereum-sepolia-rpc.publicnode.com 
       BITCOIN_TESTNET_API_KEY: ${BITCOIN_TESTNET_API_KEY:?error} 
+      SOL_CLIENT_RPC_URL: https://api.testnet.solana.com
+      DOT_CLIENT_RPC_URL: https://asset-hub-paseo-rpc.n.dwellir.com 
     healthcheck:
       # Seems like a really good healthcheck
       # Returns 200 ONLY after `[integritee_service] | [+] Found 0 block(s) to sync`
