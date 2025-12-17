@@ -67,13 +67,14 @@ services:
       RUST_BACKTRACE: 1
       INTERSTELLAR_URI_NODE: http://integritee_node:8990
       IPFS_ROOT_URL: http://ipfs:5001
-      INTERSTELLAR_ETH_ROOT_URL: https://ethereum-sepolia-rpc.publicnode.com 
+      INTERSTELLAR_ETH_ROOT_URL: https://ethereum-sepolia-rpc.publicnode.com
+      ETH_CHAIN_ID: 11155111
       BITCOIN_RPC_URL: "https://go.getblock.io/${BITCOIN_TESTNET_API_KEY:?error}"
       BITCOIN_RPC_USER: ""
       BITCOIN_RPC_PASSWORD: ""
       BITCOIN_NETWORK: "testnet"
-      SOL_CLIENT_RPC_URL: https://api.testnet.solana.com
-      DOT_CLIENT_RPC_URL: https://asset-hub-paseo-rpc.n.dwellir.com 
+      INTERSTELLAR_SOL_ROOT_URL: https://api.testnet.solana.com
+      INTERSTELLAR_DOT_ROOT_URL: https://asset-hub-paseo-rpc.n.dwellir.com 
       # NOTE see also `androidApp/src/main/java/gg/interstellar/wallet/android/data/WalletData.kt`
       # for the prefilled amounts. They are calibrated to give 10-20 txs with the usual amount given by each Faucet
       TX_THRESHOLD_BTC: 0.0002
