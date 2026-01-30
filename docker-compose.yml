@@ -56,7 +56,7 @@ services:
 
   # sudo docker run -d --name integritee_service --env=RUST_LOG=warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info --env IPFS_ROOT_URL=http://172.17.0.2:5001 --env INTERSTELLAR_URI_NODE=http://172.17.0.3:8990 -p 2090:2090 -p 2091:2091 ghcr.io/interstellar-network/containers/integritee-service:testnet-m2 --ws-external --clean-reset -P 2090 -p 9944 --node-url ws://172.17.0.3 -r 3490 -w 2091 -h 4545 run --skip-ra --dev
   integritee_service:
-    image: "ghcr.io/interstellar-network/containers/integritee-service:testnet-m3-wip1"
+    image: "integritee-worker:2026-01-30"
     hostname: integritee_service
     # volumes:
     #   - integritee-service-data:/data
@@ -111,7 +111,7 @@ services:
   # - we default the entrypoint to "/usr/bin/true"
   # - and then we can start the "demo script" on demand with for example: `podman-compose run --entrypoint /usr/local/worker-cli/demo_interstellar.sh integritee_cli`
   integritee_cli:
-    image: "ghcr.io/interstellar-network/containers/integritee-cli:testnet-m3-wip1"
+    image: "integritee-client:2026-01-30"
     hostname: integritee_cli
     stdin_open: true
     tty: true
