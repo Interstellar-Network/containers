@@ -73,7 +73,7 @@ services:
     # --ws-external, needed else can not connect from host, cf https://github.com/substrate-developer-hub/substrate-node-template/blob/main/docker-compose.yml
     entrypoint: ["/bin/bash", "-c", "/usr/local/bin/dockerize -wait-retry-interval 10s -timeout 60s -wait tcp://integritee_node:9944 -wait tcp://integritee_node:8990 /usr/local/bin/integritee-service --ws-external --clean-reset -P 2090 --node-port 9944 --node-url ws://integritee_node -r 3490 -w 2091 -h 4545 run --skip-ra --dev" ]
     environment:
-      RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,pallet_mobile_registry=debug,pallet_nfc_recovery=debug,pallet_token_recovery=debug,pallet_unify_recovery=debug,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info,dot_client=debug,sol_client=debug,eth_client=debug,btc_client=debug,pallet_tx_manager=debug,garble_core=debug,pallet_key_manager=debug
+      RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,pallet_mobile_registry=debug,pallet_nfc_recovery=debug,pallet_token_recovery=debug,pallet_unify_recovery=debug,http_grpc_client=warn,lib_garble_rs=info,ipfs_client_http_req=info,dot_client=debug,sol_client=debug,eth_client=debug,btc_client=debug,pallet_tx_manager=debug,garble_core=debug,pallet_key_manager=debug,pallet_airdrop=debug
       RUST_BACKTRACE: 1
       INTERSTELLAR_URI_NODE: http://integritee_node:8990
       IPFS_ROOT_URI: http://ipfs:5001
