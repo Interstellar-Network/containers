@@ -46,7 +46,8 @@ services:
       # --ws-port
       - "9944:9944"
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
-    entrypoint: ["/bin/bash", "-c", "/home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --base-path /data --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
+    entrypoint: ["/bin/bash", "-c", "/home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --chain dev --force-authoring --rpc-cors=all --alice --base-path /data --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
+
     environment:
       RUST_LOG: info,jsonrpsee_server=warn
       RUST_BACKTRACE: 1
@@ -93,11 +94,11 @@ services:
       # Seems like a really good healthcheck
       # Returns 200 ONLY after `[integritee_service] | [+] Found 0 block(s) to sync`
       # ie the full bootstrap etc
-      test: ["CMD-SHELL", "curl -vv -f http://localhost:4545/is_initialized"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/2090'"]
       interval: 5s
-      timeout: 2s
-      retries: 30
-      start_period: 10s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
       start_interval: 10s
     depends_on:
       ipfs:
