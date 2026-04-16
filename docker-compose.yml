@@ -9,13 +9,6 @@ volumes:
 
 services:
 
-  init-node-permissions:
-      image: busybox
-      command: sh -c "mkdir -p /data && chown -R 1001:1001 /data"
-      volumes:
-        - integritee-node-data:/data
-      restart: "no"
-
   ipfs:
     image: "docker.io/ipfs/kubo:v0.39.0"
     ports:
@@ -45,7 +38,7 @@ services:
       # --ws-port
       - "9944:9944"
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
-    entrypoint: ["/bin/bash", "-c", "/home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --base-path /data --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
+    entrypoint: ["/bin/bash", "-c", "sudo chown -R 1001:1001 /data && /home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --base-path /data --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
     environment:
       RUST_LOG: info,jsonrpsee_server=warn
       RUST_BACKTRACE: 1
