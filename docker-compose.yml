@@ -2,8 +2,8 @@ version: '3'
 
 # WARNING: `docker` FAILs if `volume` table is present but empty; so fully comment-out!
 volumes:
-#   ipfs-staging:
-#   ipfs-data:
+  ipfs-staging:
+  ipfs-data:
   integritee-node-data:
   integritee-service-data:
 
@@ -14,8 +14,8 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      # - ipfs-staging:/export
-      # - ipfs-data:/data/ipfs
+      - ipfs-staging:/export
+      - ipfs-data:/data/ipfs
       # https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node
       - ./docker-ipfs-init.sh:/container-init.d/001-test.sh
     healthcheck:
@@ -38,6 +38,9 @@ services:
       # --ws-port
       - "9944:9944"
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
+    # Docker does not chown named volumes on mount (unlike Podman which does it on first mount).
+    # The image runs as myuser (uid=1001) but Docker initializes named volumes as root:root,
+    # causing RocksDB to fail with PermissionDenied when trying to create /data/, to solve it we add: sudo chown -R 1001:1001
     entrypoint: ["/bin/bash", "-c", "sudo chown -R 1001:1001 /data && /home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --base-path /data --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
     environment:
       RUST_LOG: info,jsonrpsee_server=warn
