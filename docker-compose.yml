@@ -1,11 +1,11 @@
 version: '3'
 
 # WARNING: `docker` FAILs if `volume` table is present but empty; so fully comment-out!
-# volumes:
-#   ipfs-staging:
-#   ipfs-data:
-#   integritee-node-data:
-#   integritee-service-data:
+volumes:
+  ipfs-staging:
+  ipfs-data:
+  integritee-node-data:
+  integritee-service-data:
 
 services:
 
@@ -14,8 +14,8 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      # - ipfs-staging:/export
-      # - ipfs-data:/data/ipfs
+      - ipfs-staging:/export
+      - ipfs-data:/data/ipfs
       # https://docs.ipfs.tech/install/run-ipfs-inside-docker/#customizing-your-node
       - ./docker-ipfs-init.sh:/container-init.d/001-test.sh
     healthcheck:
@@ -30,15 +30,18 @@ services:
   integritee_node:
     image: "ghcr.io/interstellar-network/containers/integritee-node:testnet-m4"
     hostname: integritee_node
-    # volumes:
-    #   - integritee-node-data:/data
+    volumes:
+      - integritee-node-data:/data
     ports:
       # --rpc-port
       - "8990:8990"
       # --ws-port
       - "9944:9944"
     # NOTE this is the current CMD in `integritee-node-internal` Dockerfile, but we set it here just to be explicit
-    entrypoint: ["/bin/bash", "-c", "/home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --tmp --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
+    # Docker does not chown named volumes on mount (unlike Podman which does it on first mount).
+    # The image runs as myuser (uid=1001) but Docker initializes named volumes as root:root,
+    # causing RocksDB to fail with PermissionDenied when trying to create /data/, to solve it we add: sudo chown -R 1001:1001
+    entrypoint: ["/bin/bash", "-c", "sudo chown -R 1001:1001 /data && /home/myuser/.cargo/bin/integritee-node --ws-external --rpc-external --rpc-methods unsafe --dev --base-path /data --ws-port 9944 --port 30390 --rpc-port 8990 --enable-offchain-indexing=true"]
     environment:
       RUST_LOG: info,jsonrpsee_server=warn
       RUST_BACKTRACE: 1
@@ -58,8 +61,8 @@ services:
   integritee_service:
     image: "ghcr.io/interstellar-network/containers/integritee-service:testnet-m4"
     hostname: integritee_service
-    # volumes:
-    #   - integritee-service-data:/data
+    volumes:
+      - integritee-service-data:/data
     ports:
       # -P, --trusted-worker-port
       - "2090:2090"
@@ -71,7 +74,7 @@ services:
       - "4545:4545"
     # integritee-service SHOULD properly handle timeouts/retries but it is not the case so we wait until "integritee_node" is ready
     # --ws-external, needed else can not connect from host, cf https://github.com/substrate-developer-hub/substrate-node-template/blob/main/docker-compose.yml
-    entrypoint: ["/bin/bash", "-c", "/usr/local/bin/dockerize -wait-retry-interval 10s -timeout 60s -wait tcp://integritee_node:9944 -wait tcp://integritee_node:8990 /usr/local/bin/integritee-service --ws-external --clean-reset -P 2090 --node-port 9944 --node-url ws://integritee_node -r 3490 -w 2091 -h 4545 run --skip-ra --dev" ]
+    entrypoint: ["/bin/bash", "-c", "/usr/local/bin/dockerize -wait-retry-interval 10s -timeout 60s -wait tcp://integritee_node:9944 -wait tcp://integritee_node:8990 && CLEAN_RESET_FLAG='' && if [ ! -f /data/.initialized ]; then CLEAN_RESET_FLAG='--clean-reset' && touch /data/.initialized; fi && /usr/local/bin/integritee-service --ws-external $$CLEAN_RESET_FLAG --data-dir /data -P 2090 --node-port 9944 --node-url ws://integritee_node -r 3490 -w 2091 -h 4545 run --skip-ra --dev"]
     environment:
       RUST_LOG: warn,integritee_cli=debug,pallet_ocw_garble=info,pallet_tx_registry=info,pallet_tx_validation=info,pallet_mobile_registry=debug,pallet_nfc_recovery=debug,pallet_token_recovery=debug,pallet_unify_recovery=debug,interstellar_http_client=warn,lib_garble_rs=info,interstellar_ipfs_client=info,dot_client=debug,sol_client=debug,eth_client=debug,btc_client=debug,pallet_tx_manager=debug,garble_core=debug,pallet_key_manager=debug,pallet_airdrop=debug,config_provider=debug,pallet_account_manager=debug,interstellar_common_traits=debug,interstellar_extended_signature=debug,interstellar_node_rpc=debug,circuits_storage_common=debug
       RUST_BACKTRACE: 1
