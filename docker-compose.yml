@@ -41,7 +41,7 @@ services:
     # causing RocksDB to fail with PermissionDenied when trying to create /data/, to solve it we add: sudo chown -R 1001:1001
     entrypoint: ["/bin/bash", "-c", "sudo chown -R 1001:1001 /data && /home/myuser/.cargo/bin/integritee-node --rpc-external --rpc-methods unsafe --dev --base-path /data --port 30390 --rpc-port 9944 --enable-offchain-indexing=true"]
     environment:
-      RUST_LOG: info,jsonrpsee_server=warn
+      RUST_LOG: info,jsonrpsee_server=warn,pallet_ocw_circuits=debug,runtime=debug
       RUST_BACKTRACE: 1
       IPFS_ROOT_URI: http://ipfs:5001
     healthcheck:
@@ -101,7 +101,8 @@ services:
   # - we default the entrypoint to "/usr/bin/true"
   # - and then we can start the "demo script" on demand with for example: `podman-compose run --entrypoint /usr/local/worker-cli/demo_interstellar.sh integritee_cli`
   integritee_cli:
-    image: "ghcr.io/interstellar-network/containers/integritee-cli:testnet-m5-v2"
+    #image: "ghcr.io/interstellar-network/containers/integritee-cli:testnet-m5-v2"
+    image: "integritee-cli:288-local"
     hostname: integritee_cli
     stdin_open: true
     tty: true
